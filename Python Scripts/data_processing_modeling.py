@@ -47,12 +47,6 @@ file_path3 = os.path.join(data_folder_path, 'upload_DJIA_table.csv')
 combined_data = pd.read_csv(file_path1)
 DJIA_data = pd.read_csv(file_path3)
 
-file_path='/Combined_News_DJIA.csv'
-file_path2='/upload_DJIA_table.csv'
-
-combined_data=pd.read_csv(file_path)
-DJIA_data=pd.read_csv(file_path2)
-
 combined_data.head()
 
 DJIA_data.head()
@@ -432,6 +426,48 @@ df_final = df2[['Label','Open', 'High', 'Low', 'Volume', 'Subjectivity', 'Polari
 df_quant = df2[['Label','Open', 'High', 'Low', 'Volume']]
 df_final.head()
 
+"""T-test"""
+
+import statsmodels.api as sm
+from scipy.stats import ttest_ind, f_oneway
+
+# Split the DataFrame into two groups based on the 'Label' column
+group_1 = df_final[df_final['Label'] == 1]
+group_0 = df_final[df_final['Label'] == 0]
+
+# Columns for which you want to perform the tests
+columns_of_interest = ['Open', 'High', 'Low', 'Volume', 'Subjectivity', 'Polarity', 'compound', 'neg', 'pos', 'neu']
+
+# Create an empty DataFrame to store results
+result_df = pd.DataFrame(columns=['Feature', 'T-Statistic', 'P-Value', 'F-Statistic', 'ANOVA P-Value'])
+
+# Perform t-test and ANOVA for each column
+for column in columns_of_interest:
+    t_statistic, p_value = ttest_ind(group_1[column], group_0[column], equal_var=False)
+    f_statistic, anova_p_value = f_oneway(group_1[column], group_0[column])
+
+    result_df = result_df.append({
+        'Feature': column,
+        'T-Statistic': t_statistic,
+        'P-Value': p_value,
+        'F-Statistic': f_statistic,
+        'ANOVA P-Value': anova_p_value
+    }, ignore_index=True)
+
+# Display the results
+print(result_df)
+
+"""Logistic Regression Test"""
+
+# Assuming df is your DataFrame and it's already loaded with the data from the image
+X1 = df2[['Open', 'High', 'Low', 'Volume', 'Subjectivity','Polarity','compound']]
+X1 = sm.add_constant(X1)
+y = df2['Label']
+logit_model = sm.Logit(y, X1)
+result = logit_model.fit()
+summary = result.summary()
+print(summary)
+
 """Modeling with the full data, news sentiment analysis included"""
 
 X = df_final
@@ -444,17 +480,6 @@ X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_
 lda_model = LinearDiscriminantAnalysis().fit(X_train, y_train)
 
 predictions = lda_model.predict(X_test)
-
-import statsmodels.api as sm
-
-# Assuming df is your DataFrame and it's already loaded with the data from the image
-X1 = df2[['Open', 'High', 'Low', 'Volume', 'Subjectivity','Polarity','compound']]
-X1 = sm.add_constant(X1)
-y = df2['Label']
-logit_model = sm.Logit(y, X1)
-result = logit_model.fit()
-summary = result.summary()
-print(summary)
 
 cm = confusion_matrix(y_test, predictions)
 
